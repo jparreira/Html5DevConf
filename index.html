@@ -1,0 +1,92 @@
+<html ng-app>
+<head>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.0-rc.2/angular.min.js"></script>
+<script type="text/javascript" src="https://storage-cdn.realtime.co/storage/1.0.0/realtime-storage-min.js"></script>
+<link rel="stylesheet" type="text/css" href="default.css">
+ 
+<script type="text/javascript">   
+
+  function ChatCtrl($scope) {
+    var chatRoom = "html5devconf";
+    $scope.nickname = "guest_" + Math.floor((Math.random()*10000)+1);       
+    $scope.messages = [];
+
+    var credentials = {
+        applicationKey: "2Ze1dz",
+        authenticationToken: "guest",
+        isSecure: true
+    }
+
+    var storageRef = Realtime.Storage.create(credentials);
+    var tableRef = storageRef.table("chatMessages").equals({ item: "chatid", value: chatRoom });;
+
+    tableRef.on("put", function(item) {
+        if(item) {
+            $scope.messages.push(item.val());
+            $scope.$apply();
+        }
+    });
+
+    // SEND A NEW MESSAGE
+
+    $scope.sendMessage = function() {
+        var newMsg = {
+                chatid : chatRoom,
+                timestamp : +new Date(),
+                text : $scope.messageText,
+                nickname : $scope.nickname
+            };
+
+        tableRef.push(newMsg, function() {            
+            $scope.messageText = "";    
+        });                    
+    };
+
+    // HANDY BINDING TO PERFORM AUTO-SCROLL
+
+    $scope.$watchCollection('messages', function() {
+         setTimeout(
+            function() { 
+                document.getElementById("inputMsg").scrollIntoView();
+            }, 0);        
+    });
+
+  }
+</script>
+ 
+</head>
+ 
+<body>
+
+<!-- THE VIEW -->
+
+<div ng-controller="ChatCtrl">
+
+    <!-- CHAT MESSAGES -->
+
+    <div ng-repeat="message in messages">
+        <blockquote ng-class="{'example-obtuse': message.nickname == nickname, 
+        'example-right' : message.nickname != nickname }">
+            <p> 
+               {{ message.text }}
+            </p>
+        </blockquote>
+        <p>{{ message.nickname }} at 
+            {{ message.timestamp | date:"HH:mm:ss" }}</p> 
+    </div>
+
+    <!-- FORM TO SEND NEW MESSAGE -->
+
+    <form ng-submit="sendMessage()">
+        <p class="triangle-border top">
+            <span>{{ nickname }} says:</span>
+            <br/>            
+            <input id="inputMsg" type="text" ng-model="messageText" 
+            placeholder="Type your message here" />        
+        </p>
+    </form>
+
+</div>
+ 
+</body>
+</html>
